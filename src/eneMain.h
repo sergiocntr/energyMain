@@ -2,12 +2,13 @@
 #define eneMain_h
 #include <Arduino.h>
 #include <debugutils.h>
+#include <ESP8266Ping.h>
 #include <myFunctions.h>
 #include <nodeRelay.h>
 #include <MedianFilter.h>
 #include <pin.h>
 MedianFilter mfPower(31, 0);
-const uint16_t versione =1;
+const uint16_t versione =2;
 struct EneMainData{
   uint16_t power;
 };

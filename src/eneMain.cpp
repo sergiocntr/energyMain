@@ -1,4 +1,4 @@
-#define DEBUGMIO
+//#define DEBUGMIO
 #include <eneMain.h>
 void callback(char* topic, byte* payload, unsigned int length) {
   DEBUG_PRINT("Ricevuto topic.");
@@ -39,21 +39,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
       const uint8_t noteDurations[] = {
         4, 4, 4, 4, 4
       };
-      while((millis() - mytime) < 30000){
+      //while((millis() - mytime) < 30000  ){
+      while(Ping.ping("192.168.1.100")){
         playSound(melody,noteDurations);
         delay(3000);
+        if((millis() - mytime) > 60000) {
+          send(logTopic, "EnePingTimeout");
+          return;
+        }
       }
-      luceSpia.relay('0');
-    }else 
-    {
-      luceSpia.relay('1');
+      daiCorrente.relay(miosegn); 
     }
-    daiCorrente.relay(miosegn); 
   }
-  //else if (strcmp(topic, eneTopic) == 0) 
-  //{
-  //  daiCorrente.relay((char)payload[0]); 
-  //}
   smartDelay(100);
 }
 void reconnect() {
