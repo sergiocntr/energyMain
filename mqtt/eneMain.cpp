@@ -73,9 +73,6 @@ void sendThing(EneMainData dati) {
   yield();
   client.publish(eneTopic, JSONmessageBuffer,true);
   client.loop();
-  //HTTPClient http;
-  //http.begin(espClient,post_serverJSON);
-	//httpResponseCode = http.PUT(s);
 }
 void setup() {
   daiCorrente.relay('1');
@@ -126,15 +123,12 @@ void loop() {
   if((millis() - wifi_reconnect_time) > wifi_check_time){ 
    checkConn();
   }
-  if(client.state())
-  {
-    valori.v = roundf(pzem.voltage() * 100) / 100; 
-    valori.i = roundf(pzem.current() * 100) / 100; 
-    valori.p = roundf(pzem.power() * 100) / 100; 
-    valori.e = roundf(pzem.energy() * 100) / 100; 
+  valori.v = pzem.voltage();
+  valori.i = pzem.current();
+  valori.p = pzem.power();
+  valori.e = pzem.energy();
   smartDelay(100);
   sendThing(valori);
-  }
 }
 void playSound(const uint16_t* melody,const uint8_t* noteDurations){
   // iterate over the notes of the melody:
