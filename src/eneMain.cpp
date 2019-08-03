@@ -1,10 +1,10 @@
 //#define DEBUGMIO
 #include <eneMain.h>
 void callback(char* topic, byte* payload, unsigned int length) {
-  DEBUG_PRINT("Ricevuto topic.");
-  DEBUG_PRINT((String)topic);
+  //DEBUG_PRINT("Ricevuto topic.");
+  //DEBUG_PRINT((String)topic);
   char miosegn=((char)payload[0]);
-  DEBUG_PRINT((String)mioPayload);
+  //DEBUG_PRINT((String)mioPayload);
   if(strcmp(topic,updateTopic) == 0){
     delay(10);
     if(miosegn=='2'){
@@ -54,10 +54,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 void reconnect() {
   client.publish(logTopic, "NodeMCU EneMain connesso");
-  if(client.subscribe(eneTopic)) {DEBUG_PRINT("Subscrive ok.");}
-  else {DEBUG_PRINT("Subscrive non funziona.");}
+  client.subscribe(eneTopic); //{//DEBUG_PRINT("Subscrive ok.");}
+  //else {//DEBUG_PRINT("Subscrive non funziona.");}
   client.subscribe(updateTopic);
-  client.loop();
+  smartDelay(100);
 }
 void sendThing(EneMainData dati) {
   StaticJsonBuffer<500> JSONbuffer;
@@ -83,8 +83,8 @@ void setup() {
   #ifdef DEBUGMIO
     Serial.begin(9600);
     delay(3000);
-    DEBUG_PRINT("Booting!");
-    DEBUG_PRINT("Versione: " + String(versione));
+    //DEBUG_PRINT("Booting!");
+    //DEBUG_PRINT("Versione: " + String(versione));
     setIP(ipEneMain,EneMainId);
   #else
     setIP(ipEneMain,EneMainId);
@@ -100,40 +100,72 @@ void setup() {
   //pzem.setAddress(pzemip);
   wifi_check_time = 15000;
   wifi_reconnect_time=millis();
-  if(client.state()) DEBUG_PRINT("Si si tu mi piaci. Versione " + String(versione));
+  //if(client.state()) //DEBUG_PRINT("Si si tu mi piaci. Versione " + String(versione));
 }
 void checkConn(){
-  DEBUG_PRINT("Controllo WIFI");
+  //DEBUG_PRINT("Controllo WIFI");
     wifi_reconnect_time=millis();
-    if (client.state()!=0) {  // se non connesso a MQTT
-      DEBUG_PRINT("MQTT NON VA");
+    connectWiFi();
+    delay(100);
+    if (!client.connected())
+    {  // se non connesso a MQTT
+      //DEBUG_PRINT("MQTT NON VA");
       mqtt_reconnect_tries++;
-      connectWiFi();    //verifico connessione WIFI
-      delay(100);
       connectMQTT();
-      smartDelay(500);
       reconnect();
       wifi_check_time = 15000; //ogni 15 secondi
     }else {
-      DEBUG_PRINT("MQTT OK");
+      //DEBUG_PRINT("MQTT OK");
       mqtt_reconnect_tries=0;
       wifi_check_time = 300000; //ogni 5 minuti
     }
-    if (mqtt_reconnect_tries > 3) wifi_check_time = 1200000;  //venti minuti
+    if (mqtt_reconnect_tries > 3){
+      wifi_check_time = 1200000;  //venti minuti
+    } 
 }
 void loop() {
-  smartDelay(5000);
+  smartDelay(50);
   if((millis() - wifi_reconnect_time) > wifi_check_time){ 
    checkConn();
   }
-  if(client.state())
+  if(mqtt_reconnect_tries==0)
   {
-    valori.v = roundf(pzem.voltage() * 100) / 100; 
+    StaticJsonBuffer<2000> JSONbuffer;
+    JsonObject& JSONencoder = JSONbuffer.createObject();
+    JsonArray& jsonVolt = JSONencoder.createNestedArray("v");
+    JsonArray& jsonCurr = JSONencoder.createNestedArray("i");
+    JsonArray& jsonPower = JSONencoder.createNestedArray("p");
+    JsonArray& jsonCos = JSONencoder.createNestedArray("c");
+    for (int i = 0; i < 20; i++)
+    {
+    
+      //jsonVolt.add(roundf(pzem.voltage() * 100) / 100);
+      //jsonCurr.add(roundf(pzem.current() * 100) / 100);
+      //jsonPower.add(roundf(pzem.power() * 100) / 100);
+      //jsonCos.add(roundf(pzem.energy() * 100) / 100);
+      jsonVolt.add(pzem.voltage());
+      jsonCurr.add(pzem.current());
+      jsonPower.add(pzem.power());
+      jsonCos.add(pzem.energy());
+      smartDelay(5000);
+    }
+    String s="";
+	  JSONencoder.prettyPrintTo(s);
+	  yield();
+    int httpResponseCode=0;
+    //WiFiClient espClient;
+    HTTPClient http;
+    http.begin(c,post_server_eneJSON);
+	  httpResponseCode = http.PUT(s);
+	//DEBPRINT(s);
+	  smartDelay(100);
+	  http.end();  //Free resources
+	  valori.v = roundf(pzem.voltage() * 100) / 100; 
     valori.i = roundf(pzem.current() * 100) / 100; 
     valori.p = roundf(pzem.power() * 100) / 100; 
     valori.e = roundf(pzem.energy() * 100) / 100; 
-  smartDelay(100);
-  sendThing(valori);
+    smartDelay(100);
+    sendThing(valori);
   }
 }
 void playSound(const uint16_t* melody,const uint8_t* noteDurations){
@@ -155,9 +187,7 @@ void playSound(const uint16_t* melody,const uint8_t* noteDurations){
   }
 }
 void sendMySql(EneMainData dati){
-  WiFiClient mySqlclient;
-  if (mySqlclient.connect(host, httpPort))
-  {
+  
     //String s =String("GET /meteofeletto/EneMain_logger.php?gaspower=" + String(dati.power) +
     //+"&&pwd=" + webpass +
     //+"&&temp=" + String(dati.acquaTemp) +
@@ -166,7 +196,7 @@ void sendMySql(EneMainData dati){
    // mySqlclient.println(s);
     smartDelay(100);
     //mySqlclient.stop();
-  }
+  
 }
 void smartDelay(unsigned long ms){
   unsigned long start = millis();

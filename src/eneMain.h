@@ -2,16 +2,13 @@
 #define eneMain_h
 #include <Arduino.h>
 #include <debugutils.h>
-#include <ESP8266Ping.h>
+//#include <ESP8266Ping.h>
 #include <myFunctions.h>
 #include <nodeRelay.h>
 #include <pin.h>
 #include <PZEM004Tv30.h>
 PZEM004Tv30 pzem(13, 15);
-//PZEM004T pzem(&Serial);
-//IPAddress pzemip(192,168,1,1);
-//bool pzemrdy = false;
-const uint16_t versione =5;
+const uint16_t versione = 6;
 struct EneMainData{
   float v ;
   float i;
