@@ -80,40 +80,50 @@ void sendThing(EneMainData dati) {
 void setup() {
   daiCorrente.relay('1');
   luceSpia.relay('1');
+  setIP(ipEneMain,EneMainId);
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
   #ifdef DEBUGMIO
     Serial.begin(9600);
     delay(3000);
     //DEBUG_PRINT("Booting!");
     //DEBUG_PRINT("Versione: " + String(versione));
-    setIP(ipEneMain,EneMainId);
+    
   #else
-    setIP(ipEneMain,EneMainId);
-    Serial.begin(115200);
+    
+    //Serial.begin(115200);
   #endif // DEBUG
+  delay(100);
   connectWiFi();
-  yield();
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
-  delay(10);
+  delay(100);
   connectMQTT();
+  smartDelay(500);
   reconnect();
-  //pzem.setAddress(pzemip);
-  wifi_check_time = 15000;
+  wifi_check_time = 30000;
   wifi_reconnect_time=millis();
   //if(client.state()) //DEBUG_PRINT("Si si tu mi piaci. Versione " + String(versione));
 }
 void checkConn(){
   //DEBUG_PRINT("Controllo WIFI");
     wifi_reconnect_time=millis();
-    connectWiFi();
-    delay(100);
-    if (!client.connected())
-    {  // se non connesso a MQTT
+    //connectWiFi();
+    //delay(100);
+    //if (!client.connected())
+    //{  // se non connesso a MQTT
+      //DEBUG_PRINT("MQTT NON VA");
+      //mqtt_reconnect_tries++;
+      //connectMQTT();
+      //reconnect();
+      //wifi_check_time = 15000; //ogni 15 secondi
+    if (client.state()!=0) {  // se non connesso a MQTT
       //DEBUG_PRINT("MQTT NON VA");
       mqtt_reconnect_tries++;
+      connectWiFi();    //verifico connessione WIFI
+      delay(100);
       connectMQTT();
+      smartDelay(500);
       reconnect();
-      wifi_check_time = 15000; //ogni 15 secondi
+      wifi_check_time=30000;
     }else {
       //DEBUG_PRINT("MQTT OK");
       mqtt_reconnect_tries=0;
@@ -136,6 +146,7 @@ void loop() {
     JsonArray& jsonCurr = JSONencoder.createNestedArray("i");
     JsonArray& jsonPower = JSONencoder.createNestedArray("p");
     JsonArray& jsonCos = JSONencoder.createNestedArray("c");
+    int currpower=0;
     for (int i = 0; i < 20; i++)
     {
     
@@ -143,10 +154,13 @@ void loop() {
       //jsonCurr.add(roundf(pzem.current() * 100) / 100);
       //jsonPower.add(roundf(pzem.power() * 100) / 100);
       //jsonCos.add(roundf(pzem.energy() * 100) / 100);
+      currpower=(int)pzem.power();
+      mfPower.in(currpower);
+      currpower=mfPower.out();      //questo serve a non avere picchi
       jsonVolt.add(pzem.voltage());
       jsonCurr.add(pzem.current());
-      jsonPower.add(pzem.power());
-      jsonCos.add(pzem.energy());
+      jsonPower.add(currpower);
+      jsonCos.add(pzem.pf());
       smartDelay(5000);
     }
     String s="";

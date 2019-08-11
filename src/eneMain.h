@@ -6,9 +6,11 @@
 #include <myFunctions.h>
 #include <nodeRelay.h>
 #include <pin.h>
+#include <MedianFilter.h>
 #include <PZEM004Tv30.h>
 PZEM004Tv30 pzem(13, 15);
-const uint16_t versione = 6;
+MedianFilter mfPower(31, 100);
+const uint16_t versione = 8;
 struct EneMainData{
   float v ;
   float i;
