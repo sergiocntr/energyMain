@@ -9,17 +9,19 @@
 #include <MedianFilter.h>
 #include <PZEM004Tv30.h>
 PZEM004Tv30 pzem(13, 15);
-MedianFilter mfPower(31, 100);
-const uint16_t versione = 8;
+MedianFilter mfPower(20, 200);
+const uint16_t versione = 10;
 struct EneMainData{
-  float v ;
-  float i;
-  float p;
-  float e;
+  uint8_t v; //volt
+  float i;  //current
+  float c;  //cospi
+  uint16_t e; //current power
 };
+uint16_t prevPower=0;
 EneMainData valori;
 nodeRelay daiCorrente(powerPin); //usato x accendere la luce
 nodeRelay luceSpia(ledPin); //usato come spia pulsante
+void myinit();
 void checkConn();
 void smartDelay(unsigned long ms);
 void reconnect();
