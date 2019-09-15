@@ -8,9 +8,11 @@
 #include <pin.h>
 #include <MedianFilter.h>
 #include <PZEM004Tv30.h>
+#include <crash.h>
+WiFiClient mywifi;
 PZEM004Tv30 pzem(13, 15);
-MedianFilter mfPower(20, 200);
-const uint16_t versione = 10;
+MedianFilter mfPower(10, 200);
+const uint16_t versione = 12;
 struct EneMainData{
   uint8_t v; //volt
   float i;  //current
@@ -18,16 +20,18 @@ struct EneMainData{
   uint16_t e; //current power
 };
 uint16_t prevPower=0;
+uint8_t offLine=0;
+uint8_t alarmPower=0;
 EneMainData valori;
 nodeRelay daiCorrente(powerPin); //usato x accendere la luce
 nodeRelay luceSpia(ledPin); //usato come spia pulsante
-void myinit();
-void checkConn();
-void smartDelay(unsigned long ms);
+void smartDelay(uint32_t ms);
 void reconnect();
 void setup_wifi();
+void checkConn();
+void prepareData();
 void playSound(const uint16_t* melody,const uint8_t* noteDurations);
-void callbackcallback(char* topic, byte* payload, unsigned int length);
+void callback(char* topic, byte* payload, unsigned int length);
 void sendThing(EneMainData dati);
 void sendMySql(EneMainData dati);
 #endif

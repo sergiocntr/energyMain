@@ -1,5 +1,48 @@
-#define DEBUGMIO
+//#define DEBUGMIO
+//NON VA SE COLLEGATO......
 #include <eneMain.h>
+void setup() {
+  WiFi.mode(WIFI_OFF);
+  delay(10);
+  handleCrash();
+  daiCorrente.relay('1');
+  luceSpia.relay('1');
+  Serial.begin(115200);
+  #ifdef DEBUGMIO
+    //Serial.begin(9600);
+    delay(3000);
+    DEBUG_PRINT("Booting!");
+    DEBUG_PRINT("Versione: " + String(versione));
+    delay(10);
+  #else
+    
+    //Serial.begin(115200);
+  #endif // DEBUG
+  
+  setIP(ipEneMain,EneMainId);
+  delay(10);
+  int8_t checkmio=0;
+  checkmio = connectWiFi();
+  if(checkmio==0) 
+  {
+    sendCrash();
+    DEBUG_PRINT("WIFI OK!");
+  }else DEBUG_PRINT("WIFI KAPUTT!");
+  delay(10);
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
+  delay(10);
+  checkmio =connectMQTT();
+  if(checkmio==0) 
+  {
+    //sendCrash();
+    DEBUG_PRINT("MQTT OK!");
+  }else DEBUG_PRINT("MQTT KAPUTT!");
+  delay(10);
+  smartDelay(500);
+  reconnect();
+  wifi_reconnect_time=millis();
+}
 void callback(char* topic, byte* payload, unsigned int length) {
   DEBUG_PRINT("Ricevuto topic.");
   DEBUG_PRINT((String)topic);
@@ -30,7 +73,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   else if (strcmp(topic, eneTopic) == 0) 
   {
     if(miosegn=='0'){
-      unsigned long mytime = millis();
+      uint32_t mytime = millis();
       // notes in the melody:
       const uint16_t melody[] = {
         NOTE_B4, NOTE_E4, NOTE_FS4, NOTE_G4, NOTE_E4
@@ -49,85 +92,85 @@ void callback(char* topic, byte* payload, unsigned int length) {
       }
       daiCorrente.relay(miosegn); 
     }
+    else if(miosegn=='1'){
+
+    }
   }
   smartDelay(100);
 }
 void reconnect() {
-  client.publish(logTopic, "NodeMCU EneMain connesso");
+  smartDelay(50);
+  client.publish(logTopic, "EneMain connesso");
   client.subscribe(eneTopic); //{DEBUG_PRINT("Subscrive ok.");}
-  //else {DEBUG_PRINT("Subscrive non funziona.");}
   client.subscribe(updateTopic);
-  smartDelay(100);
-  mqtt_reconnect_tries = 0;
+  smartDelay(5000);
 }
-void setup() {
-  daiCorrente.relay('1');
-  luceSpia.relay('1');
-  #ifdef DEBUGMIO
-    Serial.begin(9600);
-    delay(3000);
-    DEBUG_PRINT("Booting!");
-    DEBUG_PRINT("Versione: " + String(versione));
-    yield();
-  #else
-    
-    //Serial.begin(115200);
-  #endif // DEBUG
-  myinit();
+void checkConn(){
+  DEBUG_PRINT("Controllo WIFI");
+    wifi_reconnect_time=millis();
+    delay(100);
+    if (client.state()!=0) {  // se non connesso a MQTT
+      DEBUG_PRINT("MQTT NON VA");
+      mqtt_reconnect_tries++;
+      connectWiFi();    //verifico connessione WIFI
+      delay(100);
+      connectMQTT();
+      smartDelay(500);
+      reconnect();
+      wifi_check_time = 5000; //cinque secondi
+    }else {
+      DEBUG_PRINT("WIFI OK");
+      mqtt_reconnect_tries=0;
+      wifi_check_time = 300000; //ogni 5 minuti
+    }
 }
-void myinit(){
-  DEBUG_PRINT("entro miinit");
-  setIP(ipEneMain,EneMainId);
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
-  delay(20);
-  for (int i = 0; i < 10; i++)
-  {
-    uint16_t nowPower = uint16_t(pzem.power());
-    mfPower.in(nowPower);
-    nowPower=mfPower.out();
-    delay(2000);
-  }
-  mqtt_reconnect_tries = 1;
-  checkConn();
-}
-void loop() {
-  
-  if((millis() - wifi_reconnect_time) > wifi_check_time){ 
-    if(mqtt_reconnect_tries>3)
-    {
-      DEBUG_PRINT("caso 1: " + String(mqtt_reconnect_tries));
-      delay(20);
-      myinit();
-    }else checkConn();
-  }
+void prepareData(){
   uint16_t nowPower = uint16_t(pzem.power());
+  if(nowPower>3400){
+    if(alarmPower==0)
+    {
+      alarmPower=1;
+      String s="MP: " + String(nowPower);
+      client.publish(teleTopic,s.c_str());
+    }
+  }else alarmPower=0;
   mfPower.in(nowPower);
   nowPower=mfPower.out();
   DEBUG_PRINT("valore prec: " + String(prevPower));
-  yield();
+  delay(10);
   DEBUG_PRINT("valore att: " + String(nowPower));
-  yield();
-  if((nowPower > (prevPower+8)) || (nowPower < (prevPower-8))){
+  //delay(10);
+  if((nowPower > (prevPower+8)) || (nowPower < (prevPower-8)))
+  {
     DEBUG_PRINT("devo spedire i dati");
     
     valori.v = uint8_t(pzem.voltage());
+    delay(10);
     valori.i = roundf(pzem.current() * 100) / 100;
     valori.c = roundf(pzem.pf() * 100) / 100;
+    delay(10);
     valori.e = nowPower;
     prevPower=nowPower;
-    
-    if(mqtt_reconnect_tries==0)
-    {
-      DEBUG_PRINT("mqtt retries ok!");
-      yield();
-      sendMySql(valori);
-      smartDelay(100);
-      sendThing(valori);
-      smartDelay(100);
-    }
-  } 
+    delay(10);
+    sendMySql(valori);
+    smartDelay(100);
+    sendThing(valori);
+    smartDelay(100);
+  }
+}
+void loop(){
   smartDelay(2000);
+  if((millis() - wifi_reconnect_time) > wifi_check_time){ 
+    checkConn();
+  }
+  if (mqtt_reconnect_tries > 2){
+    offLine=1;
+    wifi_check_time = 300000;  //cinque minuti
+  }
+  if(mqtt_reconnect_tries==0)
+  {
+    prepareData();
+  } 
 }
 void playSound(const uint16_t* melody,const uint8_t* noteDurations){
   // iterate over the notes of the melody:
@@ -149,6 +192,8 @@ void playSound(const uint16_t* melody,const uint8_t* noteDurations){
 }
 void sendMySql(EneMainData dati){
     smartDelay(100);
+  if (mywifi.connect(host, httpPort))
+  {
     String s =String("GET /meteofeletto/power_logger.php?enepower=" + String(dati.e) +
     +"&&pwd=" + webpass +
     +"&&volt=" + String(dati.v) +
@@ -156,80 +201,38 @@ void sendMySql(EneMainData dati){
     +"&&curr=" + String(dati.i) +
     + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
     smartDelay(100);
-    DEBUG_PRINT(s);
-    //WiFiClient mySqlclient;
-    if (c.connect(host, httpPort))
-  {
-    DEBUG_PRINT("ok mysql connesso")
-    c.println(s);
+    mywifi.println(s);
     smartDelay(100);
-    
-  }else
-  {
-    DEBUG_PRINT("MYSQL FAIL!!!!!")
+    mywifi.stop();
+    smartDelay(100);
   }
-  
 }
 void sendThing(EneMainData dati) {
   StaticJsonBuffer<500> JSONbuffer;
+  smartDelay(100);
   JsonObject& JSONencoder = JSONbuffer.createObject();
+  smartDelay(100);
   JSONencoder["topic"] = "EneMain";
-  //JSONencoder["acqua"] = dati.acquaTemp;
+  smartDelay(100);
   JSONencoder["v"] = dati.v;
   JSONencoder["i"] = dati.i;
+  smartDelay(100);
   JSONencoder["c"] = dati.c;
   JSONencoder["e"] = dati.e;
+  smartDelay(100);
   char JSONmessageBuffer[500];
+  smartDelay(100);
   JSONencoder.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
-  yield();
-  client.publish(eneTopic, JSONmessageBuffer,true);
-  client.loop();
+  smartDelay(100);
+  client.publish(eneTopic, JSONmessageBuffer);
+  smartDelay(100);
   //HTTPClient http;
   //http.begin(espClient,post_serverJSON);
 	//httpResponseCode = http.PUT(s);
   //JSONencoder.
 }
-void checkConn(){
-  DEBUG_PRINT("Controllo WIFI");
-  wifi_reconnect_time=millis();
-  for (int i = 0; i < 4; i++)
-  {
-    smartDelay(100);
-    if(connectWiFi()==0) {
-      DEBUG_PRINT("wifi ok!");
-      delay(100);
-      if(connectMQTT()==0){
-        DEBUG_PRINT("mqtt ok!");
-        wifi_check_time = 300000; //ogni 5 minuti
-        //smartDelay(500);
-        if (mqtt_reconnect_tries > 0)
-        {
-          reconnect();
-        }
-        else{
-          break;
-        }
-      } 
-      else {
-        DEBUG_PRINT("MQTT FAIL!");
-        mqtt_reconnect_tries++;
-        //wifi_check_time = 30000; //ogni 30 secondi
-      }
-    }
-    else 
-    {
-      DEBUG_PRINT("WIFI FAIL!");
-      mqtt_reconnect_tries++;
-    }
-    delay(1000);
-  }
-  if (mqtt_reconnect_tries > 3){
-      wifi_check_time = 1200000;  //venti minuti
-      DEBUG_PRINT("MQTT TIMEOUT!");
-  } 
-}
-void smartDelay(unsigned long ms){
-  unsigned long start = millis();
+void smartDelay(uint32_t ms){
+  uint32_t start = millis();
   do
   {
     client.loop();
