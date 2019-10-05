@@ -7,18 +7,14 @@ void setup() {
   handleCrash();
   daiCorrente.relay('1');
   luceSpia.relay('1');
-  Serial.begin(115200);
+  Serial.swap();
+  //Serial.begin(9600);
   #ifdef DEBUGMIO
-    //Serial.begin(9600);
     delay(3000);
     DEBUG_PRINT("Booting!");
     DEBUG_PRINT("Versione: " + String(versione));
     delay(10);
-  #else
-    
-    //Serial.begin(115200);
-  #endif // DEBUG
-  
+  #endif 
   setIP(ipEneMain,EneMainId);
   delay(10);
   int8_t checkmio=0;
@@ -27,27 +23,30 @@ void setup() {
   {
     sendCrash();
     DEBUG_PRINT("WIFI OK!");
-  }else DEBUG_PRINT("WIFI KAPUTT!");
+  }//else DEBUG_PRINT("WIFI KAPUTT!");
   delay(10);
+  randomSeed(micros());
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
-  delay(10);
-  checkmio =connectMQTT();
-  if(checkmio==0) 
-  {
-    //sendCrash();
-    DEBUG_PRINT("MQTT OK!");
-  }else DEBUG_PRINT("MQTT KAPUTT!");
-  delay(10);
-  smartDelay(500);
-  reconnect();
+  String clientId = String(mqttID);
+  clientId += String(random(0xffff), HEX);
+  delay(100);
+  if(!client.connected()){
+    //checkmio =connectMQTT();
+    if(connectMQTT()) 
+    {
+      DEBUG_PRINT("MQTT OK!");
+      smartDelay(500);
+      reconnect();
+    }
+  }
   wifi_reconnect_time=millis();
 }
 void callback(char* topic, byte* payload, unsigned int length) {
-  DEBUG_PRINT("Ricevuto topic.");
-  DEBUG_PRINT((String)topic);
+  //DEBUG_PRINT("Ricevuto topic.");
+  //DEBUG_PRINT((String)topic);
   char miosegn=((char)payload[0]);
-  DEBUG_PRINT((String)miosegn);
+  //DEBUG_PRINT((String)miosegn);
   if(strcmp(topic,updateTopic) == 0){
     delay(10);
     if(miosegn=='2'){
@@ -81,7 +80,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
       const uint8_t noteDurations[] = {
         4, 4, 4, 4, 4
       };
-      //while((millis() - mytime) < 30000  ){
       while(Ping.ping("192.168.1.100")){
         playSound(melody,noteDurations);
         delay(3000);
@@ -93,7 +91,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
       daiCorrente.relay(miosegn); 
     }
     else if(miosegn=='1'){
-
     }
   }
   smartDelay(100);
@@ -103,26 +100,29 @@ void reconnect() {
   client.publish(logTopic, "EneMain connesso");
   client.subscribe(eneTopic); //{DEBUG_PRINT("Subscrive ok.");}
   client.subscribe(updateTopic);
-  smartDelay(5000);
+  smartDelay(50);
 }
 void checkConn(){
   DEBUG_PRINT("Controllo WIFI");
-    wifi_reconnect_time=millis();
+  wifi_reconnect_time=millis();
+  delay(100);
+  if(!client.connected()) {  // se non connesso a MQTT
+    DEBUG_PRINT("MQTT NON VA");
+    mqtt_reconnect_tries++;
+    connectWiFi();    //verifico connessione WIFI
     delay(100);
-    if (client.state()!=0) {  // se non connesso a MQTT
-      DEBUG_PRINT("MQTT NON VA");
-      mqtt_reconnect_tries++;
-      connectWiFi();    //verifico connessione WIFI
-      delay(100);
-      connectMQTT();
+    if(connectMQTT()) 
+    {
+      DEBUG_PRINT("MQTT OK!");
       smartDelay(500);
       reconnect();
-      wifi_check_time = 5000; //cinque secondi
-    }else {
-      DEBUG_PRINT("WIFI OK");
-      mqtt_reconnect_tries=0;
-      wifi_check_time = 300000; //ogni 5 minuti
     }
+    wifi_check_time = 5000; //cinque secondi
+  }else {
+    DEBUG_PRINT("MQTT OK");
+    mqtt_reconnect_tries=0;
+    wifi_check_time = 60000; //ogni 5 minuti
+  }
 }
 void prepareData(){
   uint16_t nowPower = uint16_t(pzem.power());
@@ -139,11 +139,9 @@ void prepareData(){
   DEBUG_PRINT("valore prec: " + String(prevPower));
   delay(10);
   DEBUG_PRINT("valore att: " + String(nowPower));
-  //delay(10);
   if((nowPower > (prevPower+8)) || (nowPower < (prevPower-8)))
   {
     DEBUG_PRINT("devo spedire i dati");
-    
     valori.v = uint8_t(pzem.voltage());
     delay(10);
     valori.i = roundf(pzem.current() * 100) / 100;

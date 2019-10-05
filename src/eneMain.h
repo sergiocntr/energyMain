@@ -10,7 +10,8 @@
 #include <PZEM004Tv30.h>
 #include <crash.h>
 WiFiClient mywifi;
-PZEM004Tv30 pzem(13, 15);
+//PZEM004Tv30 pzem(13, 15);
+PZEM004Tv30 pzem(&Serial);
 MedianFilter mfPower(10, 200);
 const uint16_t versione = 12;
 struct EneMainData{
