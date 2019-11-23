@@ -21,14 +21,14 @@ struct EneMainData{
   uint16_t e; //current power
 };
 uint16_t prevPower=0;
-uint8_t offLine=0;
+uint8_t mqttOK=0;
 uint8_t alarmPower=0;
 EneMainData valori;
 nodeRelay daiCorrente(powerPin); //usato x accendere la luce
 nodeRelay luceSpia(ledPin); //usato come spia pulsante
 void smartDelay(uint32_t ms);
 void reconnect();
-void setup_wifi();
+//void setup_wifi();
 void checkConn();
 void prepareData();
 void playSound(const uint16_t* melody,const uint8_t* noteDurations);
