@@ -42,7 +42,7 @@ nodeRelay daiCorrente(powerPin); //usato x accendere la luce
 nodeRelay luceSpia(ledPin); //usato come spia pulsante
 void smartDelay(uint32_t ms);
 void reconnect();
-//void setup_wifi();
+void setupWifi();
 void checkConn();
 void prepareData();
 void playSound(const uint16_t* melody,const uint8_t* noteDurations);

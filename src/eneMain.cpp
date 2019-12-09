@@ -20,34 +20,13 @@ void adessoDormo(){
   delay(10);
   daiCorrente.relay('1');
   luceSpia.relay('1');
-  system_deep_sleep_set_option(2);
-  system_deep_sleep_instant(180000*1000);
-  ESP.restart();
+  //system_deep_sleep_set_option(2);
+  //system_deep_sleep_instant(180000*1000);
+  delay(180000);
+  setupWifi();
 }
 void setupWifi(){
-  WiFi.persistent(false);   // Solve possible wifi init errors (re-add at 6.2.1.16 #4044, #4083)
-  WiFi.disconnect(true);    // Delete SDK wifi config
-  delay(200);
-  //WiFi.setOutputPower(17);        // 10dBm == 10mW, 14dBm = 25mW, 17dBm = 50mW, 20dBm = 100mW
-  delay(10);
-  WiFi.hostname("enemon");      // DHCP Hostname (useful for finding device for static lease)
-  WiFi.mode(WIFI_STA);
-  WiFi.forceSleepWake();
-  delay(10);
-  WiFi.config(ipEneMain, gateway, subnet,dns1); // Set static IP (2,7s) or 8.6s with DHCP  + 2s on battery
-  delay(10);
   WiFi.begin(ssid, password);
-}
-void setup() {
-  WiFi.mode(WIFI_OFF);
-  delay(10);
-  //handleCrash();
-  daiCorrente.relay('1');
-  luceSpia.relay('1');
-  Serial.swap();
-  pinMode(LED_BUILTIN,OUTPUT);
-  digitalWrite(LED_BUILTIN,HIGH);
-  setupWifi();
   delay(10);
   //handleCrash();
   wifi_initiate = millis();
@@ -82,6 +61,29 @@ void setup() {
   delay(500);
   prepareData();
   delay(10);
+}
+void setup() {
+  WiFi.mode(WIFI_OFF);
+  delay(10);
+  //handleCrash();
+  daiCorrente.relay('1');
+  luceSpia.relay('1');
+  Serial.swap();
+  pinMode(LED_BUILTIN,OUTPUT);
+  digitalWrite(LED_BUILTIN,HIGH);
+  WiFi.persistent(false);   // Solve possible wifi init errors (re-add at 6.2.1.16 #4044, #4083)
+  WiFi.disconnect(true);    // Delete SDK wifi config
+  delay(200);
+  WiFi.setOutputPower(17);        // 10dBm == 10mW, 14dBm = 25mW, 17dBm = 50mW, 20dBm = 100mW
+  delay(10);
+  WiFi.hostname("enemon");      // DHCP Hostname (useful for finding device for static lease)
+  WiFi.mode(WIFI_STA);
+  WiFi.forceSleepWake();
+  delay(10);
+  WiFi.config(ipEneMain, gateway, subnet,dns1); // Set static IP (2,7s) or 8.6s with DHCP  + 2s on battery
+  delay(10);
+  setupWifi();
+  
 }
 void callback(char* topic, byte* payload, unsigned int length) {
   //DEBUG_PRINT("Ricevuto topic.");
@@ -197,6 +199,7 @@ void loop(){
   if((millis() - wifi_initiate) > wifi_check_time){ 
     wifi_initiate=millis();
     if (mqttOK == 0) {
+      prepareData();
       adessoDormo();
       //dopo c'e' il restart
     }
