@@ -21,7 +21,7 @@
 WiFiClient mywifi;
 WiFiClient c;
 PubSubClient client(c);
-const uint8_t versione =13;
+const uint8_t versione =14;
 uint32_t wifi_check_time=600000L;
 uint32_t wifi_initiate =0;
 uint8_t wifi_reconnect_tries = 0;

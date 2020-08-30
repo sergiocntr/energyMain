@@ -26,6 +26,9 @@ void adessoDormo(){
   setupWifi();
 }
 void setupWifi(){
+  WiFi.mode(WIFI_STA);
+  WiFi.forceSleepWake();
+  delay(10);
   WiFi.begin(ssid, password);
   delay(10);
   //handleCrash();
@@ -86,8 +89,6 @@ void setup() {
   
 }
 void callback(char* topic, byte* payload, unsigned int length) {
-  //DEBUG_PRINT("Ricevuto topic.");
-  //DEBUG_PRINT((String)topic);
   char miosegn=((char)payload[0]);
   //DEBUG_PRINT((String)miosegn);
   if(strcmp(topic,updateTopic) == 0){
@@ -116,7 +117,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   else if (strcmp(topic, eneTopic) == 0) 
   {
     if(miosegn=='0'){
-      uint32_t mytime = millis();
+      //uint32_t mytime = millis();
       // notes in the melody:
       const uint16_t melody[] = {
         NOTE_B4, NOTE_E4, NOTE_FS4, NOTE_G4, NOTE_E4
@@ -128,6 +129,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
       daiCorrente.relay(miosegn); 
     }
     else if(miosegn=='1'){
+    }else if(miosegn=='2'){
+      if (mywifi.connect(host, httpPort))
+      {
+        float nowPower = float(pzem.energy());
+        String s =String("GET /meteofeletto/power_Powerlogger.php?enepower=" + String(nowPower) +
+        +"&&pwd=" + webpass +
+        + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
+        smartDelay(100);
+        mywifi.println(s);
+        smartDelay(100);
+        pzem.resetEnergy();
+      }
     }
   }
   else if (strcmp(topic, systemTopic) == 0) 
@@ -254,9 +267,8 @@ void sendThing(EneMainData dati) {
   doc["e"] = dati.e;
   char buffer[500];
   size_t n = serializeJson(doc, buffer);
-  mqttOK = client.publish(eneTopic, buffer,n);
+  mqttOK = client.publish(eneValTopic, buffer,n);
   smartDelay(100);
-  
 }
 void smartDelay(uint32_t ms){
   uint32_t start = millis();
