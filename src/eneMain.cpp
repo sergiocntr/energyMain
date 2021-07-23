@@ -254,8 +254,7 @@ void sendMySql(EneMainData dati){
     smartDelay(100);
     mywifi.println(s);
     smartDelay(100);
-    //mywifi.stop();
-    //smartDelay(100);
+    
   }
 }
 void sendThing(EneMainData dati) {
