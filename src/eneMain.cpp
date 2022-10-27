@@ -72,6 +72,7 @@ void setup() {
   daiCorrente.relay('1');
   luceSpia.relay('1');
   Serial.swap();
+  delay(500);
   pinMode(LED_BUILTIN,OUTPUT);
   digitalWrite(LED_BUILTIN,HIGH);
   WiFi.persistent(false);   // Solve possible wifi init errors (re-add at 6.2.1.16 #4044, #4083)
@@ -258,13 +259,14 @@ void sendMySql(EneMainData dati){
   }
 }
 void sendThing(EneMainData dati) {
-  DynamicJsonDocument doc(500);
+  StaticJsonDocument<200> doc;
+  //DynamicJsonDocument doc(500);
   doc["topic"] = "EneMain";
   doc["v"] = dati.v;
   doc["i"] = dati.i;
   doc["c"] = dati.c;
   doc["e"] = dati.e;
-  char buffer[500];
+  char buffer[256];
   size_t n = serializeJson(doc, buffer);
   mqttOK = client.publish(eneValTopic, buffer,n);
   smartDelay(100);
@@ -283,7 +285,7 @@ uint8_t checkForUpdates(uint8_t FW_VERSION) {
   //Serial.println( FW_VERSION );
   uint8_t check=0;
   String fwURL = String( fwUrlBase );
-  fwURL.concat( "cald" ); //QUI DA VEDERE CON PERCORSO SERVER
+  fwURL.concat( "EneMain" ); //QUI DA VEDERE CON PERCORSO SERVER
   String fwVersionURL = fwURL;
   fwVersionURL.concat( "/version.php" );
   //Serial.print( "Firmware version URL: " );

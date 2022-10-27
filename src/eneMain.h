@@ -1,6 +1,3 @@
-#ifndef eneMain_h
-#define eneMain_h
-#pragma once
 //#define DEBUGMIO
 #include <Arduino.h>
 #include <pitches.h>
@@ -26,7 +23,7 @@ uint32_t wifi_check_time=600000L;
 uint32_t wifi_initiate =0;
 uint8_t wifi_reconnect_tries = 0;
 //PZEM004Tv30 pzem(13, 15);
-PZEM004Tv30 pzem(&Serial);
+PZEM004Tv30 pzem(Serial);
 MedianFilter mfPower(10, 200);
 struct EneMainData{
   uint8_t v; //volt
@@ -50,4 +47,3 @@ void callback(char* topic, byte* payload, unsigned int length);
 void sendThing(EneMainData dati);
 void sendMySql(EneMainData dati);
 uint8_t checkForUpdates(uint8_t versione);
-#endif
